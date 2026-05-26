@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control | Tasa Remesa Rápida</title>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Urbanist', sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .admin-card { background: #1e293b; width: 100%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
+        h1 { font-size: 22px; color: #FDB913; margin-bottom: 10px; }
+        .status { font-size: 14px; color: #94a3b8; margin-bottom: 25px; }
+        input { width: 100%; padding: 15px; margin-bottom: 15px; background: #334155; border: 2px solid #475569; border-radius: 10px; color: white; font-size: 18px; text-align: center; outline: none; }
+        input:focus { border-color: #FDB913; }
+        button { width: 100%; padding: 15px; background: #FDB913; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; color: #003366; cursor: pointer; }
+        button:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+    <div class="admin-card">
+        <h1>Panel Remesa Rápida</h1>
+        <p class="status">Tasa actual detectada: <span id="current-tasa" style="color:#25D366; font-weight:bold;">...</span></p>
+        
+        <input type="password" id="admin-pass" placeholder="Clave de administrador">
+        <input type="number" step="0.01" id="new-tasa" placeholder="Nueva tasa (Ej: 761.46)">
+        
+        <button id="btn-update">Actualizar Tasa en la Web</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvgu33pkvBIQAO9XCWOETZRN2n6t-K5nM",
+            authDomain: "remesas-venezuela.firebaseapp.com",
+            databaseURL: "https://remesas-venezuela-default-rtdb.firebaseio.com",
+            projectId: "remesas-venezuela",
+            storageBucket: "remesas-venezuela.firebasestorage.app",
+            messagingSenderId: "629650980768",
+            appId: "1:629650980768:web:0023e2bd3b54b7e2b72ec5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const tasaRef = ref(db, 'tasa_cambio');
+
+        // Leer la tasa actual y mostrarla en el panel
+        onValue(tasaRef, (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                document.getElementById('current-tasa').innerText = `${data} Bs.`;
+            } else {
+                document.getElementById('current-tasa').innerText = "0.00 (No asignada)";
+            }
+        });
+
+        // Evento para guardar la nueva tasa
+        document.getElementById('btn-update').addEventListener('click', () => {
+            const pass = document.getElementById('admin-pass').value;
+            const nuevaTasa = parseFloat(document.getElementById('new-tasa').value);
+
+            // 🔐 CLAVE ACCESO PANEL: Cámbiala por la que tú quieras
+            if (pass !== "Ja25069170.") {
+                alert("❌ Clave de administración incorrecta.");
+                return;
+            }
+
+            if (isNaN(nuevaTasa) || nuevaTasa <= 0) {
+                alert("❌ Por favor ingresa una tasa válida.");
+                return;
+            }
+
+            // Guardar en la nube
+            set(tasaRef, nuevaTasa)
+                .then(() => {
+                    alert("✅ ¡Tasa actualizada con éxito en la web!");
+                    document.getElementById('new-tasa').value = "";
+                })
+                .catch((error) => {
+                    alert("❌ Error de conexión: " + error.message);
+                });
+        });
+    </script>
+</body>
+</html>

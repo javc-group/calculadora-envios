@@ -206,18 +206,25 @@
     });
 
     // Ejecutar inicio de sesión
-    document.getElementById('btn-login').addEventListener('click', () => {
-        const email = document.getElementById('login-email').value;
-        const pass = document.getElementById('login-pass').value;
-        loginError.classList.add('hidden');
+document.getElementById('btn-login').addEventListener('click', () => {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    
+    loginError.classList.add('hidden');
 
     auth.signInWithEmailAndPassword(email, pass)
+        .then((userCredential) => {
+            // FUERZA A LA PÁGINA A MOSTRAR EL PANEL DE TASAS DE INMEDIATO
+            loginSection.classList.add('hidden');
+            adminSection.classList.remove('hidden');
+            loadCurrentSettings();
+        })
         .catch(err => {
             loginError.innerText = "Error Real: " + err.code + " - " + err.message;
             loginError.classList.remove('hidden');
             console.error(err);
         });
-
+});
     // Cargar los valores actuales desde tu Realtime Database JSON
     function loadCurrentSettings() {
         db.ref('/').once('value').then((snapshot) => {

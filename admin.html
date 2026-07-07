@@ -211,12 +211,12 @@
         const pass = document.getElementById('login-pass').value;
         loginError.classList.add('hidden');
 
-        auth.signInWithEmailAndPassword(email, pass).catch(err => {
-    // Esto mostrará el código de error real de Firebase (ej: auth/user-not-found)
-    loginError.innerText = "Error Real: " + err.code + " - " + err.message;
-    loginError.classList.remove('hidden');
-    console.error(err);
-    });
+    auth.signInWithEmailAndPassword(email, pass)
+        .catch(err => {
+            loginError.innerText = "Error Real: " + err.code + " - " + err.message;
+            loginError.classList.remove('hidden');
+            console.error(err);
+        });
 
     // Cargar los valores actuales desde tu Realtime Database JSON
     function loadCurrentSettings() {

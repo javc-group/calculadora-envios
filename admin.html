@@ -212,9 +212,10 @@
         loginError.classList.add('hidden');
 
         auth.signInWithEmailAndPassword(email, pass).catch(err => {
-            loginError.innerText = "Error: Credenciales inválidas de acceso.";
-            loginError.classList.remove('hidden');
-        });
+    // Esto mostrará el código de error real de Firebase (ej: auth/user-not-found)
+    loginError.innerText = "Error Real: " + err.code + " - " + err.message;
+    loginError.classList.remove('hidden');
+    console.error(err);
     });
 
     // Cargar los valores actuales desde tu Realtime Database JSON

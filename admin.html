@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración | javc-group</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+        }
+        body { 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            padding: 20px; 
+            min-height: 100vh; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        
+        .card { 
+            background: #1e293b; 
+            width: 100%; 
+            max-width: 480px; 
+            border-radius: 20px; 
+            padding: 30px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4); 
+        }
+        h2 { 
+            font-size: 1.3rem; 
+            margin-bottom: 20px; 
+            color: #eab308; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        
+        .hidden { display: none !important; }
+        
+        .form-group { margin-bottom: 18px; }
+        label { 
+            display: block; 
+            font-size: 0.85rem; 
+            color: #94a3b8; 
+            margin-bottom: 6px; 
+            font-weight: 600; 
+        }
+        input, select { 
+            width: 100%; 
+            background: #0f172a; 
+            border: 2px solid #334155; 
+            border-radius: 10px; 
+            padding: 12px; 
+            color: white; 
+            font-size: 1rem; 
+            outline: none; 
+        }
+        input:focus, select:focus { 
+            border-color: #2563eb; 
+        }
+        
+        .btn { 
+            background: #2563eb; 
+            color: white; 
+            border: none; 
+            width: 100%; 
+            padding: 14px; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            font-size: 1rem; 
+            transition: background 0.2s; 
+            margin-top: 10px; 
+        }
+        .btn:hover { background: #1d4ed8; }
+        
+        .btn-logout { 
+            background: #334155; 
+            font-size: 0.8rem; 
+            padding: 6px 12px; 
+            width: auto; 
+            margin: 0; 
+            border-radius: 8px; 
+        }
+        .btn-logout:hover { background: #dc2626; }
+
+        .alert { 
+            padding: 12px; 
+            border-radius: 10px; 
+            margin-bottom: 15px; 
+            font-size: 0.9rem; 
+            font-weight: 500; 
+            text-align: center; 
+        }
+        .alert-success { background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid #16a34a; }
+        .alert-error { background: rgba(220, 38, 38, 0.2); color: #f87171; border: 1px solid #dc2626; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="login-section">
+    <h2>Acceso Administrativo</h2>
+    <div id="login-error" class="alert alert-error hidden"></div>
+    <div class="form-group">
+        <label>Correo Electrónico</label>
+        <input type="email" id="login-email" placeholder="admin@tuweb.com">
+    </div>
+    <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••••••">
+    </div>
+    <button class="btn" id="btn-login">Ingresar al Panel</button>
+</div>
+
+<div class="card hidden" id="admin-section">
+    <h2>
+        <span>Panel Control Tasas</span>
+        <button class="btn btn-logout" id="btn-logout">Salir</button>
+    </h2>
+
+    <div id="action-msg" class="alert alert-success hidden">Cambios aplicados correctamente en la nube.</div>
+
+    <div class="form-group">
+        <label>Tasa de Cambio (1 EUR a VES)</label>
+        <input type="number" step="0.01" id="tasa-ves" placeholder="Ej. 45.50">
+    </div>
+
+    <div class="form-group">
+        <label>Tipo de Comisión Comercial</label>
+        <select id="comision-tipo">
+            <option value="porcentaje">Porcentaje (%)</option>
+            <option value="fija">Monto Fijo (€)</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label id="label-valor-comision">Valor de Comisión</label>
+        <input type="number" step="0.0001" id="comision-valor" placeholder="Ej. 0.04 o 3.95">
+    </div>
+
+    <div class="form-group">
+        <label>Multiplicador de Tasa USDT por Euro</label>
+        <input type="number" step="0.01" id="tasa-usdt" placeholder="Ej. 1.03">
+    </div>
+
+    <button class="btn" id="btn-save">Guardar Cambios Globales</button>
+</div>
+
+<script>
+    // ==========================================
+    // REEMPLAZA CON TUS CREDENCIALES DE FIREBASE
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "TU_API_KEY_AQUI",
+        authDomain: "remesas-venezuela.firebaseapp.com",
+        databaseURL: "https://remesas-venezuela-default-rtdb.firebaseio.com",
+        projectId: "remesas-venezuela",
+        storageBucket: "remesas-venezuela.appspot.com",
+        messagingSenderId: "TU_SENDER_ID_AQUI",
+        appId: "TU_APP_ID_AQUI"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    // Elementos del DOM
+    const loginSection = document.getElementById('login-section');
+    const adminSection = document.getElementById('admin-section');
+    const loginError = document.getElementById('login-error');
+    const actionMsg = document.getElementById('action-msg');
+    
+    const inputTasaVes = document.getElementById('tasa-ves');
+    const selectTipoComision = document.getElementById('comision-tipo');
+    const inputValorComision = document.getElementById('comision-valor');
+    const inputTasaUsdt = document.getElementById('tasa-usdt');
+    const labelValorComision = document.getElementById('label-valor-comision');
+
+    // Cambiar la ayuda visual según la opción elegida
+    selectTipoComision.addEventListener('change', () => {
+        if(selectTipoComision.value === 'porcentaje') {
+            labelValorComision.innerText = "Valor de Comisión (Ej: 0.04 equivale al 4% de la transacción)";
+        } else {
+            labelValorComision.innerText = "Valor de Comisión (Ej: 3.95 equivale a un coste fijo de 3.95 €)";
+        }
+    });
+
+    // Monitorear el estado de la sesión del administrador
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            loginSection.classList.add('hidden');
+            adminSection.classList.remove('hidden');
+            loadCurrentSettings();
+        } else {
+            loginSection.classList.remove('hidden');
+            adminSection.classList.add('hidden');
+        }
+    });
+
+    // Ejecutar inicio de sesión
+    document.getElementById('btn-login').addEventListener('click', () => {
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-pass').value;
+        loginError.classList.add('hidden');
+
+        auth.signInWithEmailAndPassword(email, pass).catch(err => {
+            loginError.innerText = "Error: Credenciales inválidas de acceso.";
+            loginError.classList.remove('hidden');
+        });
+    });
+
+    // Cargar los valores actuales desde tu Realtime Database JSON
+    function loadCurrentSettings() {
+        db.ref('/').once('value').then((snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                inputTasaVes.value = data.tasa_cambio || "";
+                selectTipoComision.value = data.comision_tipo || "porcentaje";
+                inputValorComision.value = data.comision_valor !== undefined ? data.comision_valor : "";
+                inputTasaUsdt.value = data.tasa_usdt_euro || "1.03";
+                
+                selectTipoComision.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
+    // Guardar cambios directamente en tu nodo raíz de la Base de Datos
+    document.getElementById('btn-save').addEventListener('click', () => {
+        actionMsg.classList.add('hidden');
+        
+        const updateData = {
+            tasa_cambio: parseFloat(inputTasaVes.value) || 0,
+            comision_tipo: selectTipoComision.value,
+            comision_valor: parseFloat(inputValorComision.value) || 0,
+            tasa_usdt_euro: parseFloat(inputTasaUsdt.value) || 1.03
+        };
+
+        db.ref('/').update(updateData)
+        .then(() => {
+            actionMsg.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        })
+        .catch(err => {
+            alert("Error al guardar tasas: " + err.message);
+        });
+    });
+
+    // Desloguearse de forma segura
+    document.getElementById('btn-logout').addEventListener('click', () => {
+        auth.signOut();
+    });
+</script>
+</body>
+</html>

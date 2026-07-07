@@ -194,33 +194,33 @@
     });
 
     // Monitorear el estado de la sesión del administrador
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            loginSection.classList.add('hidden');
-            adminSection.classList.remove('hidden');
-            loadCurrentSettings();
-        } else {
-            loginSection.classList.remove('hidden');
-            adminSection.classList.add('hidden');
-        }
-    });
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        loginSection.classList.add('hidden');
+        adminSection.classList.remove('hidden');
+        loadCurrentSettings();
+    } else {
+        loginSection.classList.remove('hidden');
+        adminSection.classList.add('hidden');
+    }
+});
 
-    // Ejecutar inicio de sesión
+// Ejecutar inicio de sesión
 document.getElementById('btn-login').addEventListener('click', () => {
     const email = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-pass').value;
     
     loginError.classList.add('hidden');
 
-    auth.signInWithEmailAndPassword(email, pass)
+    // Conexión unificada con la versión compatible de tu cabecera
+    firebase.auth().signInWithEmailAndPassword(email, pass)
         .then((userCredential) => {
-            // FUERZA A LA PÁGINA A MOSTRAR EL PANEL DE TASAS DE INMEDIATO
             loginSection.classList.add('hidden');
             adminSection.classList.remove('hidden');
             loadCurrentSettings();
         })
         .catch(err => {
-            loginError.innerText = "Error Real: " + err.code + " - " + err.message;
+            loginError.innerText = "Error de Acceso: " + err.message;
             loginError.classList.remove('hidden');
             console.error(err);
         });
@@ -263,7 +263,7 @@ document.getElementById('btn-login').addEventListener('click', () => {
 
     // Desloguearse de forma segura
     document.getElementById('btn-logout').addEventListener('click', () => {
-        auth.signOut();
+        firebase.auth().signOut();
     });
 </script>
 </body>

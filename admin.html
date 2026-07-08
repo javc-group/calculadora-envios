@@ -3,83 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Control | Tasa Remesa Rápida</title>
-    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@600;700&display=swap" rel="stylesheet">
+    <title>Panel Administrativo | JAVC Group</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: 'Urbanist', sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .admin-card { background: #1e293b; width: 100%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
-        h1 { font-size: 22px; color: #FDB913; margin-bottom: 10px; }
-        .status { font-size: 14px; color: #94a3b8; margin-bottom: 25px; }
-        input { width: 100%; padding: 15px; margin-bottom: 15px; background: #334155; border: 2px solid #475569; border-radius: 10px; color: white; font-size: 18px; text-align: center; outline: none; }
-        input:focus { border-color: #FDB913; }
-        button { width: 100%; padding: 15px; background: #FDB913; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; color: #003366; cursor: pointer; }
-        button:active { transform: scale(0.98); }
+        .vzla-gradient-bar {
+            background: linear-gradient(to right, #FFCC00 33%, #00247D 33%, #00247D 66%, #CF142B 66%);
+            height: 5px;
+        }
     </style>
 </head>
-<body>
+<body class="bg-slate-900 min-h-screen font-sans text-slate-800 flex flex-col justify-between">
 
-    <div class="admin-card">
-        <h1>Panel Remesa Rápida</h1>
-        <p class="status">Tasa actual detectada: <span id="current-tasa" style="color:#25D366; font-weight:bold;">...</span></p>
+    <!-- Header Admin -->
+    <header class="bg-slate-900 border-b border-slate-800">
+        <div class="vzla-gradient-bar"></div>
+        <div class="max-w-3xl mx-auto px-4 py-3.5 flex justify-between items-center text-white">
+            <span class="text-lg font-black tracking-wider">JAVC <span class="text-blue-500">ADMIN</span></span>
+            <button id="btn-logout" class="hidden text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                <i class="fas fa-sign-out-alt mr-1"></i> Salir
+            </button>
+        </div>
+    </header>
+
+    <!-- Contenido Admin -->
+    <main class="max-w-md mx-auto w-full p-4 my-auto">
         
-        <input type="password" id="admin-pass" placeholder="Clave de administrador">
-        <input type="number" step="0.01" id="new-tasa" placeholder="Nueva tasa (Ej: 761.46)">
-        
-        <button id="btn-update">Actualizar Tasa en la Web</button>
-    </div>
+        <!-- Login Form -->
+        <div id="login-section" class="bg-white rounded-3xl shadow-2xl p-8 border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fas fa-lock text-xl"></i>
+                </div>
+                <h2 class="text-2xl font-black text-slate-800">Acceso Seguro</h2>
+                <p class="text-slate-400 text-xs mt-1">Panel de control de comisiones y tasas</p>
+            </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+            <div id="login-error" class="hidden bg-rose-50 border-l-4 border-rose-500 text-rose-700 p-3 rounded-xl mb-4 text-xs font-medium"></div>
 
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Correo electrónico</label>
+                    <input type="email" id="login-email" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:outline-none font-medium text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Contraseña</label>
+                    <input type="password" id="login-pass" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:outline-none font-medium text-sm">
+                </div>
+                <button id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-blue-600/20 text-sm">
+                    Ingresar al Panel
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel de Ajustes / Tasas y Comisiones -->
+        <div id="admin-section" class="hidden space-y-5">
+            
+            <!-- Tarjeta Tasas -->
+            <div class="bg-white rounded-3xl shadow-xl p-6 sm:p-7 border border-slate-100 space-y-4">
+                <h3 class="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3 flex items-center">
+                    <i class="fas fa-chart-line text-blue-600 mr-2"></i> Configuración de Tasas
+                </h3>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Tasa Bolívares (VES)</label>
+                    <input type="number" id="tasa-ves" step="0.01" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Tasa USDT ($)</label>
+                    <input type="number" id="tasa-usdt" step="0.0001" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Tarjeta Comisiones -->
+            <div class="bg-white rounded-3xl shadow-xl p-6 sm:p-7 border border-slate-100 space-y-4">
+                <h3 class="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3 flex items-center">
+                    <i class="fas fa-percent text-amber-500 mr-2"></i> Comisión Extra Dinámica
+                </h3>
+                <p class="text-[11px] text-slate-400">La comisión operativa fija de 3.95€ se mantiene aplicada en segundo plano.</p>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Tipo de comisión extra</label>
+                    <select id="comision-tipo" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white text-sm">
+                        <option value="ninguna">Ninguna</option>
+                        <option value="porcentaje">Porcentaje (%)</option>
+                        <option value="fijo">Monto Fijo (€)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Valor de comisión extra</label>
+                    <input type="number" id="comision-valor" step="0.01" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold focus:ring-2 focus:ring-blue-600 focus:outline-none" placeholder="Ej: 1.5 o 2.00">
+                </div>
+            </div>
+
+            <!-- Botón Guardar -->
+            <button id="btn-guardar" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl shadow-xl shadow-emerald-600/20 transition flex justify-center items-center text-base">
+                <i class="fas fa-save mr-2"></i> Guardar Cambios en Vivo
+            </button>
+            
+            <div id="save-msg" class="hidden text-center text-emerald-600 font-bold bg-emerald-50 p-2.5 rounded-xl text-xs">
+                ¡Actualizado con éxito en los servidores!
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="text-center text-slate-500 text-xs py-4">
+        &copy; 2026 JAVC Group. Sistema Administrativo.
+    </footer>
+
+    <!-- Lógica de Negocio del Admin -->
+    <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyBvgu33pkvBIQAO9XCWOETZRN2n6t-K5nM",
+            apiKey: "AIzaSyBvgu33pkvBIQA09XCWOETZRN2n6t-K5nM",
             authDomain: "remesas-venezuela.firebaseapp.com",
             databaseURL: "https://remesas-venezuela-default-rtdb.firebaseio.com",
             projectId: "remesas-venezuela",
             storageBucket: "remesas-venezuela.firebasestorage.app",
             messagingSenderId: "629650980768",
-            appId: "1:629650980768:web:0023e2bd3b54b7e2b72ec5"
+            appId: "1:629650980768:web:f96018986c7a2e87b72ec5"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const tasaRef = ref(db, 'tasa_cambio');
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
 
-        // Leer la tasa actual y mostrarla en el panel
-        onValue(tasaRef, (snapshot) => {
-            const data = snapshot.val();
-            if(data) {
-                document.getElementById('current-tasa').innerText = `${data} Bs.`;
+        const loginSection = document.getElementById('login-section');
+        const adminSection = document.getElementById('admin-section');
+        const loginError = document.getElementById('login-error');
+        const btnLogout = document.getElementById('btn-logout');
+
+        // Control de Sesión Global Limpio
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                loginSection.classList.add('hidden');
+                adminSection.classList.remove('hidden');
+                btnLogout.classList.remove('hidden');
+                cargarConfiguracion();
             } else {
-                document.getElementById('current-tasa').innerText = "0.00 (No asignada)";
+                loginSection.classList.remove('hidden');
+                adminSection.classList.add('hidden');
+                btnLogout.classList.add('hidden');
             }
         });
 
-        // Evento para guardar la nueva tasa
-        document.getElementById('btn-update').addEventListener('click', () => {
-            const pass = document.getElementById('admin-pass').value;
-            const nuevaTasa = parseFloat(document.getElementById('new-tasa').value);
+        document.getElementById('btn-login').addEventListener('click', () => {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-pass').value;
+            
+            loginError.classList.add('hidden');
+            firebase.auth().signInWithEmailAndPassword(email, pass)
+                .catch(err => {
+                    loginError.innerText = "Error de Acceso: " + err.message;
+                    loginError.classList.remove('hidden');
+                });
+        });
 
-            // 🔐 CLAVE ACCESO PANEL: Cámbiala por la que tú quieras
-            if (pass !== "Andres123") {
-                alert("❌ Clave de administración incorrecta.");
-                return;
-            }
+        btnLogout.addEventListener('click', () => {
+            firebase.auth().signOut();
+        });
 
-            if (isNaN(nuevaTasa) || nuevaTasa <= 0) {
-                alert("❌ Por favor ingresa una tasa válida.");
-                return;
-            }
+        function cargarConfiguracion() {
+            firebase.database().ref('/').once('value').then((snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    document.getElementById('tasa-ves').value = data.tasa_cambio || "";
+                    document.getElementById('tasa-usdt').value = data.tasa_usdt || "";
+                    document.getElementById('comision-tipo').value = data.comision_tipo || "ninguna";
+                    document.getElementById('comision-valor').value = data.comision_valor || "";
+                }
+            });
+        }
 
-            // Guardar en la nube
-            set(tasaRef, nuevaTasa)
+        document.getElementById('btn-guardar').addEventListener('click', () => {
+            const dataToSave = {
+                tasa_cambio: parseFloat(document.getElementById('tasa-ves').value) || 0,
+                tasa_usdt: parseFloat(document.getElementById('tasa-usdt').value) || 0,
+                comision_tipo: document.getElementById('comision-tipo').value,
+                comision_valor: parseFloat(document.getElementById('comision-valor').value) || 0
+            };
+
+            const btn = document.getElementById('btn-guardar');
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Guardando...`;
+
+            firebase.database().ref('/').set(dataToSave)
                 .then(() => {
-                    alert("✅ ¡Tasa actualizada con éxito en la web!");
-                    document.getElementById('new-tasa').value = "";
+                    btn.innerHTML = `<i class="fas fa-check mr-2"></i> ¡Guardado!`;
+                    const msg = document.getElementById('save-msg');
+                    msg.classList.remove('hidden');
+                    setTimeout(() => {
+                        btn.innerHTML = `<i class="fas fa-save mr-2"></i> Guardar Cambios en Vivo`;
+                        msg.classList.add('hidden');
+                    }, 2500);
                 })
-                .catch((error) => {
-                    alert("❌ Error de conexión: " + error.message);
+                .catch(err => {
+                    alert("Error: " + err.message);
+                    btn.innerHTML = `<i class="fas fa-save mr-2"></i> Guardar Cambios en Vivo`;
                 });
         });
     </script>
